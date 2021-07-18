@@ -31,7 +31,7 @@ class ICloudSession(object):
         self.auth_headers = dict()
         self.client_id = "auth-" + str(uuid.uuid1()).lower()
 
-    def authenticate(self):
+    def authenticate(self) -> None:
         url = "https://idmsa.apple.com/appleauth/auth/signin"
         data = {
             "accountName": self.username,
@@ -40,7 +40,7 @@ class ICloudSession(object):
             "trustTokens": list()
         }
 
-        # values from time of dev, this might change later on
+        # values from time of development, this might change later on
         headers = {
             "X-Apple-Oauth-Redirect-Uri": "https://www.icloud.com",
             "X-Apple-Oauth-Require-Grant-Code": "true",
@@ -57,7 +57,8 @@ class ICloudSession(object):
         logger.info("Sending authentication request")
         resp = self.session.post(url, headers=headers, json=data)
         if resp.status_code != 409:
-            raise Exception("Invalid credentials provided. Failed with status code: {code} and error: {error}".format(code=resp.status_code, error=resp.text))
+            raise Exception("Invalid credentials provided. Failed with status code: {code} and error: {error}".format(
+                code=resp.status_code, error=resp.text))
 
         # set authentication headers
         self.auth_headers = headers
@@ -78,7 +79,7 @@ class ICloudSession(object):
 
         logger.info("Successfully logged in")
 
-    def _set_auth_headers(self, resp: requests.Response):
+    def _set_auth_headers(self, resp: requests.Response) -> None:
         for k, v in resp.headers.items():
             if k.startswith("X-Apple") or k.lower() == "scnt":
                 self.auth_headers[k] = v
@@ -87,17 +88,13 @@ class ICloudSession(object):
     def _wait_for_2fa_code() -> str:
         msg = "Approve from another device and input 2FA code: "
         code = input(msg).strip().replace(" ", "")
-        # purely aesthetic
-        print()
         while not code.isnumeric():
             logger.error("Invalid 2FA code. Try again...")
             code = input(msg).strip().replace(" ", "")
-            # same reason as above
-            print()
         return code
 
     # Note: when using burp suite, not sure why this call doesn't always get called
-    def _authenticate_2fa(self):
+    def _authenticate_2fa(self) -> bool:
         code = self._wait_for_2fa_code()
         url = "https://idmsa.apple.com/appleauth/auth/verify/trusteddevice/securitycode"
         data = {
